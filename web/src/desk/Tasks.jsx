@@ -1,7 +1,7 @@
 import { useD } from './context'
 import { CatTitle, Donut, Err, HBars, useErr } from '../components/common'
 import { CatInput } from '../components/inputs'
-import { firstName, isDone, partnerId, partnerName, periodStart, toOf } from '../lib/derived'
+import { firstName, isDone, partners, periodStart, toOf } from '../lib/derived'
 import { fmtD, fmtTS, parseISO, todayISO, LCATS, STAGES, TTYPES } from '../lib/utils'
 
 const SUBS = ['Daily', 'Weekly', 'Monthly', 'Yearly goals', 'Progress']
@@ -51,16 +51,16 @@ function TaskLists() {
   const list = st.tasks.filter(x => x.horizon === ui.sub)
   const open = list.filter(x => !x.done).sort((a, b) => (a.due || '9').localeCompare(b.due || '9'))
   const done = list.filter(x => x.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0))
-  const pid = partnerId(st), pName = partnerName(st)
+  const others = partners(st)
   const asg = st.assigned.slice().sort((a, b) => (a.status === 'Done') - (b.status === 'Done') || (a.due || '').localeCompare(b.due || ''))
 
   const add = async e => {
     e.preventDefault(); const f = e.currentTarget, E = f.elements
     const title = E.title.value.trim(); if (!title) return setErr('Enter a task first')
     setErr(''); const cat = E.cat.value.trim(); await act.saveCat(cat)
-    if (E.for.value === 'partner') {
-      await ops.add('assigned', { title, cat, type: E.type.value, from: st.uid, to: pid || '__partner__', due: E.due.value || '', status: 'To do' })
-      toast(`Assigned to ${pName}`)
+    if (E.for.value !== 'me') {
+      await ops.add('assigned', { title, cat, type: E.type.value, from: st.uid, to: E.for.value, due: E.due.value || '', status: 'To do' })
+      toast(`Assigned to ${firstName(st, E.for.value)}`)
     } else await ops.add('tasks', { title, cat, type: E.type.value, horizon: ui.sub, due: E.due.value || '', done: false })
     f.reset()
   }
@@ -77,16 +77,16 @@ function TaskLists() {
             <CatInput />
             <input name="title" placeholder={PH[ui.sub]} aria-label="Task" />
             <select name="type" aria-label="Type">{TTYPES.map(x => <option key={x}>{x}</option>)}</select>
-            <select name="for" aria-label="For"><option value="me">For me (private)</option><option value="partner">Assign to {pName}</option></select>
+            <select name="for" aria-label="For"><option value="me">For me (private)</option>{others.map(m => <option key={m.id} value={m.id}>Assign to {firstName(st, m.id)}</option>)}</select>
             <input name="due" type="date" aria-label="Due date" defaultValue={ui.sub === 'Daily' ? todayISO() : ''} />
             <button className="btn-p">Add task</button>
           </form>
           <Err msg={err} />
-          {!pid && <p className="meta" style={{ margin: '6px 0 0' }}>Your partner hasn't joined yet. Tasks you assign now will be waiting for them when they do.</p>}
+          {!others.length && <p className="meta" style={{ margin: '6px 0 0' }}>Invite partners from the account menu (top right) to assign them tasks.</p>}
         </div>
       </div>
       <div className="card">
-        <div className="ctitle">Assigned between founders · both of you see this</div>
+        <div className="ctitle">Assigned within the studio · everyone sees this</div>
         {asg.length ? asg.map(a => ui.edit === 'assigned:' + a.id ? <EditTaskForm key={a.id} x={a} k="assigned" /> : (
           <div className="row" key={a.id}>
             <div className="main"><div className={a.status === 'Done' ? 'done' : ''}><CatTitle x={a} /></div>
@@ -97,7 +97,7 @@ function TaskLists() {
               {a.from === st.uid && <button className="btn-s btn-g" aria-label="Delete" onClick={() => act.del('assigned', a.id)}>✕</button>}
             </div>
           </div>
-        )) : <p className="empty">Nothing assigned yet. Pick "Assign to {pName}" when adding a task.</p>}
+        )) : <p className="empty">Nothing assigned yet. Pick a partner under "For" when adding a task.</p>}
       </div>
     </>
   )

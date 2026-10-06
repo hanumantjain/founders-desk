@@ -26,7 +26,7 @@ export default function Commercial() {
         <div className="tile"><span className="lbl">Still to receive</span><b>{R(pend)}</b><small>All projects</small></div>
       </div>
       <div className="grid2">
-        <BillsCard k="bills" title="Office monthly payments · shared" cats={BILLCAT} ph="Office rent" note="Add rent, electricity and salaries. Each one reminds both founders in Today 3 days before it is due." />
+        <BillsCard k="bills" title="Office monthly payments · shared" cats={BILLCAT} ph="Office rent" note="Add rent, electricity and salaries. Each one reminds everyone in the studio in Today 3 days before it is due." />
         <div className="card"><div className="ctitle">Office cost by category</div>
           {cats.length ? <DonutMoney label="Office cost by category" parts={cats.map((c, i) => [c, ents.filter(e => e.category === c).reduce((s, e) => s + (+e.amount || 0), 0), CC[i % CC.length]])} /> : <p className="empty">No office costs this month yet.</p>}
         </div>

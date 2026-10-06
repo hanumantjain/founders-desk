@@ -66,7 +66,7 @@ function ExpenseModal({ m }) {
         </div>
         <div><label className="lbl" htmlFor="m-note">Note</label><input id="m-note" name="note" placeholder="Cab to Baner site" /></div>
         <p className="meta" style={{ margin: 0 }}>🕒 Recorded automatically: {fmtTS(Date.now())}. You can change the date and time later in {office ? 'Commercial' : 'Expenses'}.</p>
-        <p className="meta" style={{ margin: 0 }}>{office ? 'Office entries go to Commercial and are shared with your partner.' : 'Personal entries are private to you.'}</p>
+        <p className="meta" style={{ margin: 0 }}>{office ? 'Office entries go to Commercial and are shared with your studio.' : 'Personal entries are private to you.'}</p>
         <Err msg={err} /><button className="btn-p">Save expense</button>
       </form>
     </Shell>

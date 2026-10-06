@@ -76,7 +76,7 @@ function ProjectDetail({ p }) {
         </div>
       </div>
       <div style={{ marginTop: 12 }}>
-        <SureButton className="btn-s btn-g" style={{ color: 'var(--bad)' }} sureText="Press again to delete this project for both founders"
+        <SureButton className="btn-s btn-g" style={{ color: 'var(--bad)' }} sureText="Press again to delete this project for everyone"
           onConfirm={async () => { setUi({ sel: null }); await ops.del('projects', p.id); toast('Project deleted') }}>Delete this project</SureButton>
       </div>
     </>

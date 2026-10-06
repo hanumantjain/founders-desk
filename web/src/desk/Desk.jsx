@@ -60,7 +60,7 @@ export default function Desk({ user, workspace, onWorkspaceChange }) {
     return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('pointerdown', touch); clearInterval(iv) }
   }, [touch, setUi, toast])
 
-  /* ---------- password reset: each founder writes their own 2-digit code into their private bell ---------- */
+  /* ---------- password reset: every partner writes their own 2-digit code into their private bell ---------- */
   const genCode = useRef(false)
   useEffect(() => {
     if (!ready) return
@@ -167,7 +167,7 @@ export default function Desk({ user, workspace, onWorkspaceChange }) {
         </header>
         {!ready && <div className="banner">Connecting…</div>}
         {ready && st.members.length < 2 && !st.invites.length && (
-          <div className="banner">You're the only founder here. <button className="linkbtn" onClick={() => setUi({ account: true })}>Invite your partner</button> to share leads, projects, meetings and office costs.</div>
+          <div className="banner">You're the only one here. <button className="linkbtn" onClick={() => setUi({ account: true })}>Invite your partners</button> to share leads, projects, meetings and office costs.</div>
         )}
         <nav className="rails" aria-label="Sections">
           {TABS.map((t, i) => t[0] === '|' ? <span key={i} className="divider" aria-hidden="true" /> : (

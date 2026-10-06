@@ -9,7 +9,7 @@ const emptyRecs = () => Object.fromEntries(KINDS.map(k => [k, {}]))
  * Supabase Realtime, and exposes add / set / upd / del that write optimistically.
  *
  * Records are { workspace_id, scope, kind, id, data }. Private kinds use the user's id as scope,
- * so row-level security keeps them invisible to the partner.
+ * so row-level security keeps them invisible to other partners.
  */
 export function useWorkspaceData({ uid, workspaceId, onError, onRemoved }) {
   const [recs, setRecs] = useState(emptyRecs)

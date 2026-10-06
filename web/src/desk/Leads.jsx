@@ -56,7 +56,7 @@ export default function Leads() {
         <div className="tile"><span className="lbl">Converted to projects</span><b>{st.projects.length}</b><small>All time</small></div>
         <div className="tile"><span className="lbl">Lost</span><b>{lost.length}</b><small>Kept for your records</small></div>
       </div>
-      <div className="card"><div className="ctitle">Add a lead · shared with your partner</div>
+      <div className="card"><div className="ctitle">Add a lead · shared with your studio</div>
         <form className="form" onSubmit={add} onInput={clear}>
           <input name="title" placeholder="3BHK interior, Aundh" aria-label="Lead title" />
           <input name="ref" placeholder="Reference: Mr. Patil, Instagram…" aria-label="Reference" />

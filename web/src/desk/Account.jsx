@@ -3,14 +3,13 @@ import { useD } from './context'
 import { Err, SureButton, useErr } from '../components/common'
 import { supabase, errText } from '../lib/supabase'
 
-/** Account and workspace: studio name, founders, partner invite, sign out. */
+/** Account and workspace: your name, studio name, partners and invites, sign out. */
 export default function Account() {
   const { st, setUi, user, workspace, toast, onWorkspaceChange, reloadMembers, reloadInvites } = useD()
   const [err, setErr, clear] = useErr()
   const [busy, setBusy] = useState(false)
   const me = st.members.find(m => m.id === user.id)
   const isOwner = me && me.role === 'owner'
-  const partner = st.members.find(m => m.id !== user.id)
 
   const run = async (fn, ok) => {
     setBusy(true); setErr('')
@@ -63,26 +62,31 @@ export default function Account() {
         </form>
       </div>
 
-      <h3>Founders</h3>
+      <h3>Partners · {st.members.length}</h3>
       {st.members.map(m => (
         <div key={m.id} className="note" style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
           <span>{m.name || m.email}{m.id === user.id ? ' (you)' : ''}<div className="meta">{m.email} · {m.role === 'owner' ? 'Owner' : 'Partner'}</div></span>
           {isOwner && m.id !== user.id && <SureButton className="btn-s btn-g" style={{ color: 'var(--bad)' }} sureText="Press again" onConfirm={() => removeMember(m.id)}>Remove</SureButton>}
         </div>
       ))}
-      {!partner && (st.invites.length ? st.invites.map(i => (
-        <div key={i.id} className="note">Invite waiting for <b>{i.email}</b>
-          <div className="meta">Ask them to open this site and sign up with that email. They'll see the invite after confirming their email.</div>
-          <button className="btn-s" style={{ marginTop: 8 }} disabled={busy} onClick={() => cancelInvite(i.id)}>Cancel invite</button></div>
-      )) : (
+      {st.invites.length > 0 && <>
+        <h3>Pending invites · {st.invites.length}</h3>
+        {st.invites.map(i => (
+          <div key={i.id} className="note" style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
+            <span>{i.email}<div className="meta">Waiting for them to sign up with this email</div></span>
+            {isOwner && <button className="btn-s btn-g" disabled={busy} onClick={() => cancelInvite(i.id)}>Cancel</button>}
+          </div>
+        ))}
+      </>}
+      {isOwner ? (
         <div className="note">
-          <div style={{ marginBottom: 8 }}>Invite your partner. They sign up with this email and join your studio.</div>
+          <div style={{ marginBottom: 8 }}>Invite a partner. They open this site, sign up with this email, confirm it, and join your studio.</div>
           <form className="form" style={{ gridTemplateColumns: 'minmax(0,1fr) auto' }} onSubmit={invite} onInput={clear}>
             <input name="email" type="email" placeholder="partner@studio.com" aria-label="Partner's email" />
             <button className="btn-s btn-p" disabled={busy}>Invite</button>
           </form>
         </div>
-      ))}
+      ) : <p className="meta">Only the studio owner can invite or remove partners.</p>}
       <Err msg={err} />
 
       <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>

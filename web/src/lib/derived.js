@@ -1,17 +1,16 @@
 import { iso, pad, parseISO, todayISO, addDays, firstWord } from './utils'
 
 /* ---------- people ---------- */
-export const partnerId = st => st.members.map(m => m.id).find(id => id !== st.uid) || null
+export const partners = st => st.members.filter(m => m.id !== st.uid)
 export const nameOf = (st, id) => {
-  if (id === '__partner__') return partnerName(st)
+  if (id === '__partner__') return 'Partner'
   const m = st.members.find(x => x.id === id)
   if (m && m.name) return m.name
-  return id === st.uid ? 'You' : 'Partner'
+  return id === st.uid ? 'You' : 'Former partner'
 }
 export const firstName = (st, id) => firstWord(nameOf(st, id))
-export const partnerName = st => { const p = partnerId(st); return p ? firstName(st, p) : 'partner' }
-// An assignment made before the partner joined is addressed to '__partner__'.
-export const toOf = (st, a) => a.to === '__partner__' ? (a.from === st.uid ? (partnerId(st) || '__partner__') : st.uid) : a.to
+// Assignments from the two-founder version may be addressed to '__partner__' (whoever wasn't the sender).
+export const toOf = (st, a) => a.to === '__partner__' ? (a.from === st.uid ? '__partner__' : st.uid) : a.to
 
 /* ---------- bills ---------- */
 export const dueDateFor = (b, y, m) => { const dim = new Date(y, m + 1, 0).getDate(); return `${y}-${pad(m + 1)}-${pad(Math.min(Number(b.dueDay) || 1, dim))}` }
@@ -91,7 +90,7 @@ export function tips(st) {
   const generic = [
     'Tag office spends as Office in the + window. They go straight to Commercial and stay out of your personal totals.',
     'Press Lock before handing your phone to someone. Projects and Commercial close again.',
-    'Use Assign to partner in Tasks for anything your partner should do. You both see its status.',
+    'Use Assign in Tasks for anything a partner should do. Everyone in the studio sees its status.',
     'Log every lead the day it comes in, even small ones. Conversion numbers in Progress depend on it.',
     'Check Progress every Monday morning. It takes two minutes and shows where last week went.',
   ]

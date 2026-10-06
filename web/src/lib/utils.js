@@ -47,7 +47,7 @@ export const LCATS = ['Architecture', 'Interiors', 'Liaisoning']
 export const TTYPES = ['Personal', 'Professional', 'Studio']
 export const PAY_LABELS = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Extra work', 'Other']
 
-// Private lists live under the user's own scope; everything else is shared with the partner.
+// Private lists live under the user's own scope; everything else is shared with the whole studio.
 export const PRIV = ['tasks', 'goals', 'expenses', 'notifs', 'tcats', 'pbills']
 export const SHARED = ['contacts', 'meetings', 'assigned', 'leads', 'projects', 'office', 'bills', 'seclog', 'sec']
 export const KINDS = [...PRIV, ...SHARED]

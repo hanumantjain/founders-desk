@@ -38,7 +38,7 @@ export default function WorkspaceSetup({ user, onReady }) {
         {invites === null ? <p className="meta">Checking for invites…</p> : <>
           {invites.map(i => (
             <div key={i.id} className="note">
-              You're invited to join <b>{i.workspaces ? i.workspaces.name : 'a studio'}</b> as a founder.
+              You're invited to join <b>{i.workspaces ? i.workspaces.name : 'a studio'}</b> as a partner.
               <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                 <button className="btn-s btn-p" disabled={busy} onClick={() => accept(i.id)}>Join</button>
                 <button className="btn-s" disabled={busy} onClick={() => decline(i.id)}>Decline</button>
@@ -46,7 +46,7 @@ export default function WorkspaceSetup({ user, onReady }) {
             </div>
           ))}
           <h2 style={{ fontSize: 16, fontWeight: 600 }}>{invites.length ? 'Or start your own studio' : 'Set up your studio'}</h2>
-          <p className="meta" style={{ margin: 0 }}>Your studio is your workspace. You can invite one partner to share leads, projects, meetings and office costs. Your tasks and personal expenses stay private.</p>
+          <p className="meta" style={{ margin: 0 }}>Your studio is your workspace. You can invite your partners to share leads, projects, meetings and office costs. Your tasks and personal expenses stay private.</p>
           <form onSubmit={create}>
             <label><span className="lbl">Studio name</span><input name="name" placeholder="Triline Designs" /></label>
             <button className="btn-p" disabled={busy}>Create studio</button>
