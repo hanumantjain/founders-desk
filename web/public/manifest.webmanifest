@@ -1,0 +1,9 @@
+{
+  "name": "Founders Desk",
+  "short_name": "Desk",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F3F5F7",
+  "theme_color": "#2C6BAE",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
