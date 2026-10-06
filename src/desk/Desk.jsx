@@ -14,6 +14,7 @@ import Commercial from './Commercial'
 import Bell from './Bell'
 import Account from './Account'
 import Modal from './Modal'
+import ThemeToggle from '../components/ThemeToggle'
 
 const TABS = [['Today', 'g1'], ['Tasks', 'g1'], ['Calendar', 'g1'], ['Expenses', 'g1'], ['|'], ['Leads', 'leads'], ['Projects', 'proj', 1], ['Commercial', 'comm', 1]]
 const VIEWS = { Today, Tasks, Calendar, Expenses, Leads, Projects, Commercial }
@@ -158,6 +159,7 @@ export default function Desk({ user, workspace, onWorkspaceChange }) {
             <div className="sub">{st.studio} · {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
           </div>
           <div className="hdr-actions">
+            <ThemeToggle />
             <button className="bell" aria-label="Notifications" onClick={toggleBell}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
               {unread > 0 && <span className="badge">{unread}</span>}
