@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase, errText } from '../lib/supabase'
+import About from './About'
 
 const redirect = () => window.location.origin + window.location.pathname
 
@@ -12,6 +13,7 @@ export default function AuthScreen({ initialMode = 'signin', onPasswordSet }) {
   const [err, setErr] = useState('')
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
+  const [about, setAbout] = useState(false)
   const go = m => { setMode(m); setErr(''); setMsg('') }
 
   const submit = async e => {
@@ -42,6 +44,8 @@ export default function AuthScreen({ initialMode = 'signin', onPasswordSet }) {
     } finally { setBusy(false) }
   }
 
+  if (about) return <About onBack={() => setAbout(false)} onSignup={() => { setAbout(false); go('signup') }} />
+
   const titles = { signin: 'Sign in', signup: 'Create your account', forgot: 'Reset your password', newPassword: 'Choose a new password' }
   return (
     <div className="auth">
@@ -62,6 +66,7 @@ export default function AuthScreen({ initialMode = 'signin', onPasswordSet }) {
             <span>New here? <button className="linkbtn" onClick={() => go('signup')}>Create an account</button></span>
             <button className="linkbtn" onClick={() => go('forgot')}>Forgot password?</button>
           </>}
+          {mode !== 'newPassword' && <button className="linkbtn" onClick={() => { setAbout(true); window.scrollTo({ top: 0 }) }}>What is Founders Desk?</button>}
           {(mode === 'signup' || mode === 'forgot') && <span>Already have an account? <button className="linkbtn" onClick={() => go('signin')}>Sign in</button></span>}
         </div>
       </div>

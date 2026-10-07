@@ -48,7 +48,7 @@ function ExpenseModal({ m }) {
     e.preventDefault(); const E = e.currentTarget.elements; const a = Number(E.amount.value)
     if (!(a > 0)) return setErr('Enter an amount first')
     const d = { amount: a, category: E.category.value, note: E.note.value.trim(), ts: Date.now() }
-    if (office) { await ops.add('office', { ...d, by: st.uid }); toast(`Saved ${R(a)} · added to Commercial`) }
+    if (office) { await ops.add('office', { ...d, by: st.uid }); toast(`Saved ${R(a)} · added to Commercial${st.canFinance ? '' : ' for the owner and admins'}`) }
     else { await ops.add('expenses', d); toast(`Saved ${R(a)} · added to Expenses`) }
     setUi({ modal: null })
   }
@@ -65,8 +65,8 @@ function ExpenseModal({ m }) {
           <div><label className="lbl" htmlFor="m-cat">Category</label><select id="m-cat" name="category" key={m.tag}>{(office ? OFFICECAT : PCAT).map(c => <option key={c}>{c}</option>)}</select></div>
         </div>
         <div><label className="lbl" htmlFor="m-note">Note</label><input id="m-note" name="note" placeholder="Cab to Baner site" /></div>
-        <p className="meta" style={{ margin: 0 }}>🕒 Recorded automatically: {fmtTS(Date.now())}. You can change the date and time later in {office ? 'Commercial' : 'Expenses'}.</p>
-        <p className="meta" style={{ margin: 0 }}>{office ? 'Office entries go to Commercial and are shared with your studio.' : 'Personal entries are private to you.'}</p>
+        <p className="meta" style={{ margin: 0 }}>🕒 Recorded automatically: {fmtTS(Date.now())}. {office && !st.canFinance ? 'The owner or an admin can change it later in Commercial.' : `You can change the date and time later in ${office ? 'Commercial' : 'Expenses'}.`}</p>
+        <p className="meta" style={{ margin: 0 }}>{office ? 'Office entries go to Commercial, which the owner and admins can see.' : 'Personal entries are private to you.'}</p>
         <Err msg={err} /><button className="btn-p">Save expense</button>
       </form>
     </Shell>

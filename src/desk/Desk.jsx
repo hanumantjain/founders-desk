@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DeskContext } from './context'
-import { useWorkspaceData } from '../lib/store'
+import { useActivity, useWorkspaceData } from '../lib/store'
 import { supabase, ideasEnabled } from '../lib/supabase'
-import { hash, mkey, rid, slug, todayISO, fmtD, fmtT, monthLabel } from '../lib/utils'
-import { firstName, isPaid, tips } from '../lib/derived'
+import { mkey, rid, slug, todayISO, fmtD, fmtT, monthLabel } from '../lib/utils'
+import { isPaid, tips } from '../lib/derived'
 import Today from './Today'
 import Tasks from './Tasks'
 import Calendar from './Calendar'
@@ -16,6 +16,7 @@ import Account from './Account'
 import Modal from './Modal'
 import ThemeToggle from '../components/ThemeToggle'
 
+// The third field marks tabs only the owner and admins see.
 const TABS = [['Today', 'g1'], ['Tasks', 'g1'], ['Calendar', 'g1'], ['Expenses', 'g1'], ['|'], ['Leads', 'leads'], ['Projects', 'proj', 1], ['Commercial', 'comm', 1]]
 const VIEWS = { Today, Tasks, Calendar, Expenses, Leads, Projects, Commercial }
 
@@ -23,7 +24,7 @@ const initialUi = () => ({
   tab: 'Today', sub: 'Daily', period: 'month', sel: null, edit: null,
   calM: new Date(new Date().getFullYear(), new Date().getMonth(), 1), calDay: todayISO(),
   expM: mkey(new Date()), comM: mkey(new Date()),
-  unlocked: false, resetMode: false, bell: false, account: false, modal: null,
+  bell: false, account: false, modal: null,
   ideas: null, ideasBusy: false, ideasErr: null,
 })
 
@@ -48,36 +49,18 @@ export default function Desk({ user, workspace, onWorkspaceChange }) {
   const st = useMemo(() => ({ ...data.st, myName: (me && me.name) || user.email.split('@')[0], studio: workspace.name }), [data.st, me, user.email, workspace.name])
   const stRef = useRef(st); stRef.current = st
 
-  /* ---------- idle lock for Projects and Commercial ---------- */
-  const lastAct = useRef(Date.now())
-  const uiRef = useRef(ui); uiRef.current = ui
-  const touch = useCallback(() => { lastAct.current = Date.now() }, [])
-  useEffect(() => {
-    const onKey = e => { touch(); if (e.key === 'Escape') setUi(u => (u.modal || u.bell || u.account ? { modal: null, bell: false, account: false } : {})) }
-    document.addEventListener('keydown', onKey); document.addEventListener('pointerdown', touch)
-    const iv = setInterval(() => {
-      if (uiRef.current.unlocked && Date.now() - lastAct.current > 15 * 60e3) { setUi({ unlocked: false, sel: null }); toast('Projects and Commercial locked after 15 idle minutes') }
-    }, 30e3)
-    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('pointerdown', touch); clearInterval(iv) }
-  }, [touch, setUi, toast])
+  const activity = useActivity(workspace.id)
 
-  /* ---------- password reset: every partner writes their own 2-digit code into their private bell ---------- */
-  const genCode = useRef(false)
   useEffect(() => {
-    if (!ready) return
-    const r = st.reset
-    if (!r || r.state !== 'open' || Date.now() > r.expires) return
-    if ((r.codes || {})[st.uid] || genCode.current) return
-    if (st.notifs.some(n => n.kind === 'code' && n.resetAt === r.at)) return
-    genCode.current = true
-    ;(async () => {
-      try {
-        const code = String(10 + Math.floor(Math.random() * 90))
-        await ops.add('notifs', { kind: 'code', code, resetAt: r.at, at: Date.now(), read: false, text: r.by === st.uid ? 'You asked to reset the password. Your code:' : `${firstName(st, r.by)} asked to reset the password. Your code (share it only if you agree):` })
-        await ops.upd('sec', 'reset', { codes: { [st.uid]: await hash(code + '|' + r.at) } })
-      } finally { genCode.current = false }
-    })()
-  }, [ready, st, ops])
+    const onKey = e => { if (e.key === 'Escape') setUi(u => (u.modal || u.bell || u.account ? { modal: null, bell: false, account: false } : {})) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [setUi])
+
+  // Someone whose role drops to member while on Projects or Commercial goes back to Today.
+  useEffect(() => {
+    if (ready && !st.canFinance && (ui.tab === 'Projects' || ui.tab === 'Commercial')) setUi({ tab: 'Today', sel: null, edit: null })
+  }, [ready, st.canFinance, ui.tab, setUi])
 
   /* ---------- actions shared across tabs ---------- */
   const act = useMemo(() => {
@@ -115,18 +98,7 @@ export default function Desk({ user, workspace, onWorkspaceChange }) {
         ops.upd('meetings', m.id, on ? { confirmedAt: Date.now(), confirmedBy: S().uid } : { confirmedAt: null })
         toast(on ? 'Marked confirmed' : 'Marked not confirmed')
       },
-      waOpened(id) { touch(); ops.upd('meetings', id, { waOpenedAt: Date.now() }) },
-      unlocked() { lastAct.current = Date.now(); setUi({ unlocked: true }) },
-      async forgot() {
-        const r = S().reset
-        if (!(r && r.state === 'open' && Date.now() < r.expires && r.by === S().uid)) {
-          const now = Date.now()
-          const ok = await ops.set('sec', 'reset', { by: S().uid, at: now, expires: now + 30 * 60e3, attempts: 0, codes: {}, state: 'open' })
-          if (!ok) return
-        }
-        setUi({ resetMode: true, bell: true }); toast('Your 2-digit code is in the bell at the top right.')
-      },
-      async cancelReset() { await ops.upd('sec', 'reset', { state: 'cancelled' }); setUi({ resetMode: false }) },
+      waOpened(id) { ops.upd('meetings', id, { waOpenedAt: Date.now() }) },
       async getIdeas() {
         if (!ideasEnabled) return
         setUi({ ideasBusy: true, ideasErr: null })
@@ -140,15 +112,15 @@ export default function Desk({ user, workspace, onWorkspaceChange }) {
         setUi({ ideasBusy: false, ideas, ideasErr: ideas.length ? null : 'No ideas came back. Try again.' })
       },
     }
-  }, [ops, setUi, toast, touch, workspace.id])
+  }, [ops, setUi, toast, workspace.id])
 
   const toggleBell = async () => {
     const open = !ui.bell; setUi({ bell: open, account: false })
-    if (open) for (const n of st.notifs.filter(n => !n.read && n.kind !== 'code')) await ops.upd('notifs', n.id, { read: true })
+    if (open) for (const n of st.notifs.filter(n => !n.read)) await ops.upd('notifs', n.id, { read: true })
   }
   const unread = st.notifs.filter(n => !n.read).length + tips(st).length
   const View = VIEWS[ui.tab]
-  const ctx = { st, ui, setUi, ops, act, toast, workspace, user, onWorkspaceChange, reloadMembers: data.reloadMembers, reloadInvites: data.reloadInvites }
+  const ctx = { st, ui, setUi, ops, act, toast, activity, workspace, user, onWorkspaceChange, reloadMembers: data.reloadMembers, reloadInvites: data.reloadInvites }
 
   return (
     <DeskContext.Provider value={ctx}>
@@ -172,10 +144,10 @@ export default function Desk({ user, workspace, onWorkspaceChange }) {
           <div className="banner">You're the only one here. <button className="linkbtn" onClick={() => setUi({ account: true })}>Invite your partners</button> to share leads, projects, meetings and office costs.</div>
         )}
         <nav className="rails" aria-label="Sections">
-          {TABS.map((t, i) => t[0] === '|' ? <span key={i} className="divider" aria-hidden="true" /> : (
+          {TABS.filter(t => !t[2] || st.canFinance).map((t, i) => t[0] === '|' ? <span key={i} className="divider" aria-hidden="true" /> : (
             <button key={t[0]} className={`tab ${t[1]}${ui.tab === t[0] ? ' on' : ''}`} aria-current={ui.tab === t[0] ? 'page' : 'false'}
-              onClick={() => { setUi({ tab: t[0], sel: null, edit: null, resetMode: false }); window.scrollTo({ top: 0 }) }}>
-              {t[0]}{t[2] ? <span className="lk" aria-label="password protected">{ui.unlocked ? '🔓' : '🔒'}</span> : null}
+              onClick={() => { setUi({ tab: t[0], sel: null, edit: null }); window.scrollTo({ top: 0 }) }}>
+              {t[0]}
             </button>
           ))}
         </nav>

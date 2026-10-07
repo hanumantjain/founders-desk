@@ -11,7 +11,7 @@ function ConvertForm({ l }) {
     e.preventDefault(); const E = e.currentTarget.elements
     const q = Number(E.quoted.value), a = Number(E.adv.value); if (!(q > 0 && a > 0)) return
     await ops.add('projects', { name: l.title, cat: l.cat, ref: l.ref || '', quoted: q, payments: [{ id: rid(), label: 'Advance', amount: a, date: todayISO() }], from: l.id, by: st.uid })
-    await ops.del('leads', l.id); toast(`${l.title} moved to Projects`)
+    await ops.del('leads', l.id); toast(st.canFinance ? `${l.title} moved to Projects` : `${l.title} is now a project. The owner and admins track it in Projects.`)
   }
   return (
     <form className="conv" onSubmit={submit} onInput={check}>
@@ -53,7 +53,7 @@ export default function Leads() {
     <>
       <div className="tiles">
         <div className="tile"><span className="lbl">Open leads</span><b>{open.length}</b><small>{open.filter(l => l.stage === 'Proposal sent' || l.stage === 'Negotiation').length} at proposal or negotiation</small></div>
-        <div className="tile"><span className="lbl">Converted to projects</span><b>{st.projects.length}</b><small>All time</small></div>
+        {st.canFinance && <div className="tile"><span className="lbl">Converted to projects</span><b>{st.projects.length}</b><small>All time</small></div>}
         <div className="tile"><span className="lbl">Lost</span><b>{lost.length}</b><small>Kept for your records</small></div>
       </div>
       <div className="card"><div className="ctitle">Add a lead · shared with your studio</div>

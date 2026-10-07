@@ -1,6 +1,6 @@
 # Founders Desk
 
-A web app that runs a small design studio day to day. Each partner gets a private desk for their own tasks, goals and expenses, and the whole studio shares meetings, leads, projects and office costs. Changes show up for everyone in real time.
+A web app that runs a small design studio day to day. Each partner gets a private desk for their own tasks, goals and expenses, and the whole studio shares meetings and leads. Projects and office costs are visible to the owner and admins. Changes show up for everyone in real time.
 
 Built with **React** and **Vite**, with **Supabase** for email/password sign-in and a Postgres database protected by row-level security.
 
@@ -13,13 +13,13 @@ Built with **React** and **Vite**, with **Supabase** for email/password sign-in 
 | **Calendar** | A shared monthly calendar of meetings and payment due dates. Mark meetings as attended or cancelled. |
 | **Expenses** | Personal spending by category and month, plus personal monthly payments (rent, EMI, insurance) with reminders. |
 | **Leads** | Every enquiry with its reference and stage, from Enquiry to Advance received. A lead becomes a project once the advance is recorded. |
-| **Projects** 🔒 | Amount quoted, payments received and balance due for each project. |
-| **Commercial** 🔒 | Office expenses, office monthly payments, money received from projects, and monthly profit. |
+| **Projects** (owner & admins) | Amount quoted, payments received and balance due for each project. |
+| **Commercial** (owner & admins) | Office expenses, office monthly payments, money received from projects, and monthly profit. |
 
 Also included:
-- **Private vs. shared:** tasks, goals, personal expenses and personal payments are visible only to you. Meetings, leads, projects and office costs are shared with your studio.
-- **Studio password:** Projects and Commercial are locked behind a shared password and lock again after 15 idle minutes. Resetting it needs your own 2-digit code plus a code from any one other partner, so nobody can change it alone.
-- **Notification bell** with password-reset codes, reminders and tips.
+- **Private, shared and money data:** tasks, goals, personal expenses and personal payments are visible only to you. Meetings, leads and assigned tasks are shared with the whole studio. Projects, office expenses and office payments are visible only to the owner and admins, and the database enforces this with row-level security.
+- **Studio activity:** every change to leads, meetings, assigned tasks, projects and office costs is recorded by the database. The bell shows the latest changes and each project has its own History. Members don't see money entries.
+- **Notification bell** with studio activity, reminders, growth ideas and tips.
 - **Type-ahead** that fills in names, phone numbers and categories you've used before. Press Enter or Tab to accept a suggestion.
 - **Installable on phones:** use "Add to Home Screen" and it opens like an app.
 
@@ -27,11 +27,18 @@ Also included:
 
 1. **Sign up** with your name, email and password, then click the confirmation link sent to your email.
 2. **Create your studio** by entering your studio's name. You become its owner.
-3. **Invite your partners.** Click the round button with your initial (top right), enter a partner's email, and click Invite. Repeat for each partner. Each one signs up with that same email, confirms it, and sees the invite on their first sign-in. A studio can have up to 20 people, including pending invites.
-4. **Set the studio password** the first time anyone opens Projects or Commercial.
-5. Start adding tasks, meetings, leads and expenses. The **+ Add expense** tile on Today is the quickest way to log a spend. Tag it *Office* to send it to Commercial.
+3. **Invite your partners.** Click the round button with your initial (top right), enter a partner's email, pick **Admin** or **Member**, and click Invite. Repeat for each partner. Each one signs up with that same email, confirms it, and sees the invite on their first sign-in. A studio can have up to 20 people, including pending invites.
+4. Start adding tasks, meetings, leads and expenses. The **+ Add expense** tile on Today is the quickest way to log a spend. Tag it *Office* to send it to Commercial.
 
-**Roles:** the person who creates the studio is its **owner**. Only the owner can invite partners, cancel invites and remove partners. Any partner can leave the studio from the account menu, which deletes their private data in that studio.
+**Roles:**
+
+| Role | Projects & Commercial | Invite & remove | Change roles |
+|---|---|---|---|
+| **Owner** (the person who created the studio) | ✅ | anyone | ✅ and can hand the studio to someone else with **Make owner** |
+| **Admin** | ✅ | members only | ❌ |
+| **Member** | ❌ (can still log an Office spend and convert a lead) | ❌ | ❌ |
+
+Anyone except the owner can leave the studio from the account menu, which deletes their private data in that studio. Studios from before Phase 3 keep everyone's access: former partners become admins.
 
 If you forget your login password, use **Forgot password?** on the sign-in screen and a reset link is emailed to you.
 
@@ -84,4 +91,5 @@ src/
 ## Roadmap
 
 - **Phase 1:** two founders per studio. ✅
-- **Phase 2:** studios with multiple partners: invite several people, assign tasks to anyone, password reset approved by any one partner, and owner controls for removing partners. ✅
+- **Phase 2:** studios with multiple partners: invite several people, assign tasks to anyone, and owner controls for removing partners. ✅
+- **Phase 3:** team-ready studios: owner / admin / member roles enforced by the database (replacing the shared studio password), a studio activity log with per-project history, and hand-over of ownership. ✅

@@ -17,11 +17,6 @@ export const ordinal = n => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 
 export const slug = n => n.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'c'
 export const firstWord = s => String(s || '').split(' ')[0]
 
-export async function hash(s) {
-  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('triline-desk|' + s))
-  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('')
-}
-
 export function deepMerge(t, p) {
   for (const k in p) {
     if (p[k] && typeof p[k] === 'object' && !Array.isArray(p[k])) t[k] = deepMerge(t[k] && typeof t[k] === 'object' ? { ...t[k] } : {}, p[k])
@@ -49,5 +44,7 @@ export const PAY_LABELS = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Extra wo
 
 // Private lists live under the user's own scope; everything else is shared with the whole studio.
 export const PRIV = ['tasks', 'goals', 'expenses', 'notifs', 'tcats', 'pbills']
-export const SHARED = ['contacts', 'meetings', 'assigned', 'leads', 'projects', 'office', 'bills', 'seclog', 'sec']
-export const KINDS = [...PRIV, ...SHARED]
+export const SHARED = ['contacts', 'meetings', 'assigned', 'leads']
+// Money lists: only the owner and admins can read them (scope 'finance'); members can still add to them.
+export const FIN = ['projects', 'office', 'bills']
+export const KINDS = [...PRIV, ...SHARED, ...FIN]

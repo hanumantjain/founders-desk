@@ -89,11 +89,38 @@ export function tips(st) {
   if (st.leads.some(l => !l.ref)) t.push('Fill in the reference for every lead. It shows which source brings you the most work.')
   const generic = [
     'Tag office spends as Office in the + window. They go straight to Commercial and stay out of your personal totals.',
-    'Press Lock before handing your phone to someone. Projects and Commercial close again.',
     'Use Assign in Tasks for anything a partner should do. Everyone in the studio sees its status.',
     'Log every lead the day it comes in, even small ones. Conversion numbers in Progress depend on it.',
     'Check Progress every Monday morning. It takes two minutes and shows where last week went.',
   ]
   t.push(generic[new Date().getDate() % generic.length])
   return t
+}
+
+/* ---------- activity log ---------- */
+const NOUN = { leads: 'lead', projects: 'project', meetings: 'meeting', assigned: 'task', office: 'office expense', bills: 'office payment' }
+const FIELD = { stage: 'stage', quoted: 'amount quoted', payments: 'payments', status: 'status', date: 'date', time: 'time', place: 'place',
+  phone: 'phone', note: 'note', notes: 'notes', amount: 'amount', category: 'category', title: 'title', name: 'name', done: 'status',
+  confirmedAt: 'confirmation', paid: 'payment', dueDay: 'due day', ref: 'reference', cat: 'category', person: 'person' }
+
+/** One line for an activity row: { who, text }. */
+export function describeActivity(st, a) {
+  const who = a.actor ? firstName(st, a.actor) : 'Someone'
+  const noun = NOUN[a.kind] || 'item', what = a.label ? `“${a.label}”` : `a ${noun}`
+  if (a.action === 'insert') {
+    if (a.kind === 'projects') return { who, text: `turned ${what} into a project` }
+    return { who, text: `added ${noun} ${what}` }
+  }
+  if (a.action === 'delete') return { who, text: `deleted ${noun} ${what}` }
+  const ch = a.changes || {}, keys = Object.keys(ch).filter(k => k !== 'stageAt' && k !== 'confirmedBy')
+  const to = k => ch[k] && ch[k].to
+  if (keys.includes('stage') && to('stage')) return { who, text: `moved ${what} to ${to('stage')}` }
+  if (keys.includes('status') && to('status')) return { who, text: `marked ${what} ${String(to('status')).toLowerCase()}` }
+  if (keys.includes('done')) return { who, text: `marked ${what} ${to('done') ? 'done' : 'not done'}` }
+  if (keys.includes('payments')) return { who, text: `updated payments on ${what}` }
+  if (keys.includes('paid')) return { who, text: `recorded a payment for ${what}` }
+  if (keys.includes('confirmedAt')) return { who, text: `${to('confirmedAt') ? 'confirmed' : 'unconfirmed'} ${what}` }
+  if (keys.includes('quoted')) return { who, text: `changed the quote on ${what} to ₹${Math.round(Number(to('quoted')) || 0).toLocaleString('en-IN')}` }
+  const names = [...new Set(keys.map(k => FIELD[k]).filter(Boolean))]
+  return { who, text: `updated ${what}${names.length ? ` (${names.slice(0, 3).join(', ')})` : ''}` }
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from './supabase'
-import { KINDS, PRIV, deepMerge, rid } from './utils'
+import { FIN, KINDS, PRIV, deepMerge, rid } from './utils'
 
 const emptyRecs = () => Object.fromEntries(KINDS.map(k => [k, {}]))
 
@@ -9,7 +9,8 @@ const emptyRecs = () => Object.fromEntries(KINDS.map(k => [k, {}]))
  * Supabase Realtime, and exposes add / set / upd / del that write optimistically.
  *
  * Records are { workspace_id, scope, kind, id, data }. Private kinds use the user's id as scope,
- * so row-level security keeps them invisible to other partners.
+ * so row-level security keeps them invisible to other partners. Money kinds use scope 'finance',
+ * which only the owner and admins can read.
  */
 export function useWorkspaceData({ uid, workspaceId, onError, onRemoved }) {
   const [recs, setRecs] = useState(emptyRecs)
@@ -19,7 +20,11 @@ export function useWorkspaceData({ uid, workspaceId, onError, onRemoved }) {
   const errRef = useRef(onError); errRef.current = onError
   const removedRef = useRef(onRemoved); removedRef.current = onRemoved
 
-  const scopeOf = useCallback(k => (PRIV.includes(k) ? uid : 'shared'), [uid])
+  const scopeOf = useCallback(k => (PRIV.includes(k) ? uid : FIN.includes(k) ? 'finance' : 'shared'), [uid])
+  const myRole = (members.find(m => m.id === uid) || {}).role || null
+  const canFinance = myRole === 'owner' || myRole === 'admin'
+  const finRef = useRef(canFinance); finRef.current = canFinance
+  const visible = useCallback(scope => scope === 'shared' || scope === uid || (scope === 'finance' && finRef.current), [uid])
 
   const put = useCallback((kind, id, row) => setRecs(p => ({ ...p, [kind]: { ...p[kind], [id]: { ...row, id } } })), [])
   const drop = useCallback((kind, id) => setRecs(p => {
@@ -50,7 +55,7 @@ export function useWorkspaceData({ uid, workspaceId, onError, onRemoved }) {
   }, [workspaceId, uid])
 
   const loadInvites = useCallback(async () => {
-    const { data } = await supabase.from('invites').select('id,email,created_at').eq('workspace_id', workspaceId)
+    const { data } = await supabase.from('invites').select('id,email,role,created_at').eq('workspace_id', workspaceId)
     setInvites(data || [])
   }, [workspaceId])
 
@@ -64,20 +69,21 @@ export function useWorkspaceData({ uid, workspaceId, onError, onRemoved }) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'records', filter: `workspace_id=eq.${workspaceId}` }, ev => {
         if (ev.eventType === 'DELETE') {
           const o = ev.old || {}
-          if (o.workspace_id === workspaceId && (o.scope === 'shared' || o.scope === uid)) drop(o.kind, o.id)
+          if (o.workspace_id === workspaceId && visible(o.scope)) drop(o.kind, o.id)
           return
         }
         const r = ev.new
-        if (r.scope === 'shared' || r.scope === uid) put(r.kind, r.id, r.data)
+        if (visible(r.scope)) put(r.kind, r.id, r.data)
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'workspace_members', filter: `workspace_id=eq.${workspaceId}` }, () => loadMembers().catch(() => {}))
+      // A role change can show or hide the money lists, so reload everything.
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'workspace_members', filter: `workspace_id=eq.${workspaceId}` }, () => reload())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'invites', filter: `workspace_id=eq.${workspaceId}` }, () => loadInvites())
       .subscribe(status => { if (status === 'SUBSCRIBED') reload() })
     // Catch up after the tab sleeps or the phone loses signal.
     const onVis = () => { if (document.visibilityState === 'visible') reload() }
     document.addEventListener('visibilitychange', onVis)
     return () => { document.removeEventListener('visibilitychange', onVis); supabase.removeChannel(ch) }
-  }, [workspaceId, uid, put, drop, reload, loadMembers, loadInvites])
+  }, [workspaceId, put, drop, reload, loadInvites, visible])
 
   const fail = useCallback(e => { errRef.current && errRef.current(e); reload() }, [reload])
   const key = useCallback((kind, id) => ({ workspace_id: workspaceId, scope: scopeOf(kind), kind, id }), [workspaceId, scopeOf])
@@ -86,7 +92,7 @@ export function useWorkspaceData({ uid, workspaceId, onError, onRemoved }) {
   const ops = useMemo(() => ({
     async add(kind, data) {
       const id = rid(); const row = { ...data, createdAt: data.createdAt || Date.now() }
-      put(kind, id, row)
+      if (visible(scopeOf(kind))) put(kind, id, row)
       const { error } = await supabase.from('records').insert({ ...key(kind, id), data: row })
       if (error) fail(error)
       return id
@@ -110,15 +116,38 @@ export function useWorkspaceData({ uid, workspaceId, onError, onRemoved }) {
       const { error } = await supabase.from('records').delete().match(k)
       if (error) fail(error)
     },
-  }), [put, drop, key, fail])
+  }), [put, drop, key, fail, visible, scopeOf])
 
   const st = useMemo(() => {
-    const s = { uid, members, invites }
+    const s = { uid, members, invites, role: myRole, canFinance }
     for (const k of KINDS) s[k] = Object.values(recs[k])
-    s.lock = recs.sec.lock || null
-    s.reset = recs.sec.reset || null
     return s
-  }, [recs, members, invites, uid])
+  }, [recs, members, invites, uid, myRole, canFinance])
 
   return { st, ops, ready, reloadMembers: loadMembers, reloadInvites: loadInvites }
+}
+
+/**
+ * The studio's activity log, written by a database trigger on every change to shared and money records.
+ * Row-level security hides money entries from members.
+ */
+export function useActivity(workspaceId) {
+  const [items, setItems] = useState([])
+  const load = useCallback(async () => {
+    const { data } = await supabase.from('activity').select('*').eq('workspace_id', workspaceId).order('at', { ascending: false }).limit(50)
+    setItems(data || [])
+  }, [workspaceId])
+  useEffect(() => {
+    const ch = supabase.channel('act-' + workspaceId)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activity', filter: `workspace_id=eq.${workspaceId}` },
+        ev => setItems(p => [ev.new, ...p.filter(x => x.id !== ev.new.id)].slice(0, 50)))
+      .subscribe(status => { if (status === 'SUBSCRIBED') load() })
+    return () => { supabase.removeChannel(ch) }
+  }, [workspaceId, load])
+  const loadFor = useCallback(async (kind, id) => {
+    const { data } = await supabase.from('activity').select('*').eq('workspace_id', workspaceId).eq('kind', kind).eq('record_id', id)
+      .order('at', { ascending: false }).limit(100)
+    return data || []
+  }, [workspaceId])
+  return { items, loadFor, reload: load }
 }

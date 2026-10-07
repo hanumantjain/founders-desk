@@ -8,7 +8,7 @@ export default function WorkspaceSetup({ user, onReady }) {
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    supabase.from('invites').select('id, workspace_id, workspaces(name)').eq('email', user.email.toLowerCase())
+    supabase.from('invites').select('id, workspace_id, role, workspaces(name)').eq('email', user.email.toLowerCase())
       .then(({ data }) => setInvites(data || []))
   }, [user.email])
 
@@ -38,7 +38,7 @@ export default function WorkspaceSetup({ user, onReady }) {
         {invites === null ? <p className="meta">Checking for invites…</p> : <>
           {invites.map(i => (
             <div key={i.id} className="note">
-              You're invited to join <b>{i.workspaces ? i.workspaces.name : 'a studio'}</b> as a partner.
+              You're invited to join <b>{i.workspaces ? i.workspaces.name : 'a studio'}</b> as {i.role === 'admin' ? 'an admin' : 'a member'}.
               <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                 <button className="btn-s btn-p" disabled={busy} onClick={() => accept(i.id)}>Join</button>
                 <button className="btn-s" disabled={busy} onClick={() => decline(i.id)}>Decline</button>

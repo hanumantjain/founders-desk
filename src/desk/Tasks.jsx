@@ -168,8 +168,8 @@ function Progress() {
       <div className="tiles">
         <div className="tile"><span className="lbl">Tasks completed</span><b>{doneT.length + asgDone.length}</b><small>{rate}% of tasks added in this period are done</small></div>
         <div className="tile"><span className="lbl">Meetings attended</span><b>{att}</b><small>{can} cancelled · {mt.length} in total</small></div>
-        <div className="tile"><span className="lbl">New leads</span><b>{leadsP.length + wonP.length}</b><small>{wonP.length} became projects</small></div>
-        <div className="tile"><span className="lbl">Lead conversion</span><b>{conv}%</b><small>Leads that reached advance</small></div>
+        <div className="tile"><span className="lbl">New leads</span><b>{leadsP.length + wonP.length}</b>{st.canFinance && <small>{wonP.length} became projects</small>}</div>
+        {st.canFinance && <div className="tile"><span className="lbl">Lead conversion</span><b>{conv}%</b><small>Leads that reached advance</small></div>}
       </div>
       <h2 style={h2}>Personal and professional</h2>
       <div className="grid2">
@@ -183,10 +183,10 @@ function Progress() {
       </div>
       <h2 style={h2}>{st.studio}</h2>
       <div className="grid2">
-        <div className="card"><div className="ctitle">Leads and projects by category</div><Donut parts={cats} label="By category" /></div>
+        <div className="card"><div className="ctitle">{st.canFinance ? 'Leads and projects' : 'Leads'} by category</div><Donut parts={cats} label="By category" /></div>
         <div className="card"><div className="ctitle">Open leads by stage</div><HBars items={stages} /></div>
         <div className="card"><div className="ctitle">Where work comes from · top references</div>{topRefs.length ? <HBars items={topRefs} /> : <p className="empty">No leads yet.</p>}</div>
-        <div className="card"><div className="ctitle">Projects</div><Donut parts={[['Active', active, 'var(--c1)'], ['Completed', comp, 'var(--c2)']]} label="Projects" /></div>
+        {st.canFinance && <div className="card"><div className="ctitle">Projects</div><Donut parts={[['Active', active, 'var(--c1)'], ['Completed', comp, 'var(--c2)']]} label="Projects" /></div>}
       </div>
     </>
   )

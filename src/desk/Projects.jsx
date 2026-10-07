@@ -1,6 +1,6 @@
 import { useD } from './context'
 import { Err, SureButton, catPill, useErr } from '../components/common'
-import Gate, { LockBar } from './Gate'
+import { History } from './Activity'
 import { isDone, received } from '../lib/derived'
 import { R, fmtDY, rid, todayISO, PAY_LABELS } from '../lib/utils'
 
@@ -33,7 +33,6 @@ function ProjectDetail({ p }) {
 
   return (
     <>
-      <LockBar />
       <button className="btn-s" style={{ marginBottom: 10 }} onClick={() => setUi({ sel: null, edit: null })}>← All projects</button>
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
@@ -75,6 +74,7 @@ function ProjectDetail({ p }) {
           </form><Err msg={err} />
         </div>
       </div>
+      <History kind="projects" id={p.id} />
       <div style={{ marginTop: 12 }}>
         <SureButton className="btn-s btn-g" style={{ color: 'var(--bad)' }} sureText="Press again to delete this project for everyone"
           onConfirm={async () => { setUi({ sel: null }); await ops.del('projects', p.id); toast('Project deleted') }}>Delete this project</SureButton>
@@ -85,7 +85,6 @@ function ProjectDetail({ p }) {
 
 export default function Projects() {
   const { st, ui, setUi } = useD()
-  if (!ui.unlocked) return <Gate />
   if (ui.sel) {
     const p = st.projects.find(x => x.id === ui.sel)
     if (p) return <ProjectDetail p={p} />
@@ -103,7 +102,6 @@ export default function Projects() {
   const tq = act.reduce((s, p) => s + (+p.quoted || 0), 0), tr = act.reduce((s, p) => s + received(p), 0)
   return (
     <>
-      <LockBar />
       <div className="tiles">
         <div className="tile"><span className="lbl">Active projects</span><b>{act.length}</b><small>{done.length} completed</small></div>
         <div className="tile"><span className="lbl">Quoted · active</span><b>{R(tq)}</b></div>
